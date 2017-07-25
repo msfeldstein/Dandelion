@@ -1,0 +1,17 @@
+{
+  "name": "Dandelion",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "budo index.js -o -l"
+  },
+  "dependencies": {
+    "budo": "^10.0.4",
+    "glsl-curl-noise": "^0.0.4",
+    "glslify": "^6.1.0",
+    "three": "^0.86.0",
+    "three-instanced-mesh": "^86.0.0",
+    "three-orbitcontrols": "^1.2.1"
+  }
+}
