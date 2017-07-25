@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "budo index.js -o -l"
+    "start": "budo index.js -o -l -- -t glslify"
   },
   "dependencies": {
     "budo": "^10.0.4",

@@ -4,7 +4,7 @@ require('three-instanced-mesh')(THREE)
 function rand(min, max) {
   return min + (max - min) * Math.random()
 }
-const POOF_STEM_RANDOM_ORIENT = 3;
+const POOF_STEM_RANDOM_ORIENT = 1;
 
 
 module.exports = function() {

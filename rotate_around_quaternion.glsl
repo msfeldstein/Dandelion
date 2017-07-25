@@ -34,3 +34,5 @@ vec3 rotate_vertex_position(vec3 position, vec4 qr)
   
   return vec3(qr.x, qr.y, qr.z);
 }
+
+#pragma glslify: export(rotate_vertex_position)
