@@ -59,12 +59,14 @@ module.exports = function(renderer) {
     offsetArray[i * 4 + 3] = Math.random() // mass
     velArray[i * 4] = 0;
     velArray[i * 4 + 1] = 0;
-    velArray[i * 4 + 2] = -0.4;
-    velArray[i * 4 + 3] = Math.random();
+    velArray[i * 4 + 2] = -.4;
+    velArray[i * 4 + 3] = i;
   }
   posArray.set(offsetArray)
   const posVar = positionComputer.addVariable("texturePosition", NewtonFragmentShader, posTex)
   const velVar = positionComputer.addVariable("textureVelocity", WindVelocityFragmentShader, velTex)
+  posVar.material.uniforms.time = {value: 0.0}
+  velVar.material.uniforms.time = {value: 0.0}
   positionComputer.setVariableDependencies(posVar, [posVar, velVar])
   positionComputer.setVariableDependencies(velVar, [posVar, velVar])
   var error = positionComputer.init();
@@ -99,6 +101,7 @@ module.exports = function(renderer) {
     transparent: true,
     uniforms: {
       offsetLookup: {type: 't', value: posTex},
+      velocityLookup: {type: 't', value: null},
       time: {type: 'f', value: 0},
       texDimension: {type: 'f', value: 32}
     }
@@ -107,6 +110,8 @@ module.exports = function(renderer) {
   const start = Date.now()
   function animate() {
     requestAnimationFrame(animate)
+    velVar.material.uniforms.time.value = (Date.now() - start)
+    posVar.material.uniforms.time.value = (Date.now() - start)
     positionComputer.compute()
     
     material.uniforms.offsetLookup.value = positionComputer.getCurrentRenderTarget(posVar).texture
