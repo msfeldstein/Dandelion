@@ -1,35 +1,57 @@
 const DandelionSpire = require('./DandelionSpire')
+const Stem = require('./Stem')
 const Shader = require('./DandelionParticleShader')
+const randomizeVec = require('./util/randomizeVec')
 require('three-instanced-mesh')(THREE)
-function rand(min, max) {
-  return min + (max - min) * Math.random()
-}
+const GPUComputationRenderer = require('./GPUComputationRenderer')
 const POOF_STEM_RANDOM_ORIENT = 1;
 
 
-module.exports = function() {
+module.exports = function(renderer) {
+  const container = new THREE.Object3D()
+  
+  const stem = Stem()
+  stem.position.set(-2, -21, 0)
+  container.add(stem)
+  
   const head = new THREE.Mesh(
     new THREE.IcosahedronGeometry(3.4, 1),
-    new THREE.MeshPhongMaterial({color: 0xc2a91C})
+    new THREE.MeshPhongMaterial({color: 0xc2a91C,})
   )
+  container.add(head)
   
   const spireMesh = DandelionSpire()
   const spawnGeo = new THREE.IcosahedronGeometry(3.4, 3);
-    
+  
   var geometry = new THREE.InstancedBufferGeometry()
+  geometry.maxInstancedCount = spawnGeo.vertices.length;
+  
+  // Mesh vertex positions
   var vertexArray = new Float32Array(spireMesh.geometry.attributes.position.length)
   var vertices = new THREE.BufferAttribute(vertexArray, 3, 1)
   vertices.copyArray(spireMesh.geometry.attributes.position.array)
   geometry.addAttribute('position', vertices)
-  geometry.maxInstancedCount = spawnGeo.vertices.length;
   
-  var offsetArray = new Float32Array(geometry.maxInstancedCount * 3)
-  var offsets = new THREE.InstancedBufferAttribute(offsetArray, 3, 1, false)
+
+  var indicesArray = new Float32Array(geometry.maxInstancedCount)
+  
+  for (var i = 0; i < spawnGeo.vertices.length; i++) {
+    indicesArray[i] = i;
+  }
+  var indices = new THREE.InstancedBufferAttribute(indicesArray, 1, 1)
+  geometry.addAttribute('idx', indices)
+  
+  
+  var positionComputer = new GPUComputationRenderer( 32, 32, renderer );
+  var offsetArray = new Float32Array(32*32 * 3)
   for (var i = 0; i < spawnGeo.vertices.length; i++) {
     const spawnVert = spawnGeo.vertices[i]
-    offsets.setXYZ(i, spawnVert.x, spawnVert.y, spawnVert.z)
+    offsetArray[i * 3] = spawnVert.x
+    offsetArray[i * 3 + 1] = spawnVert.y
+    offsetArray[i * 3 + 2] = spawnVert.z
   }
-  geometry.addAttribute('offset', offsets)
+  var offsetsTexture = new THREE.DataTexture(offsetArray, 32, 32, THREE.RGBFormat, THREE.FloatType, THREE.UVMapping)
+  offsetsTexture.needsUpdate = true
   
   var lookAtArray = new Float32Array(geometry.maxInstancedCount * 4)
 
@@ -38,9 +60,7 @@ module.exports = function() {
     const v = spawnGeo.vertices[i]
     const helper = new THREE.Object3D()
     tmpV.copy(v)
-    tmpV.x += rand(-POOF_STEM_RANDOM_ORIENT, POOF_STEM_RANDOM_ORIENT)
-    tmpV.y += rand(-POOF_STEM_RANDOM_ORIENT, POOF_STEM_RANDOM_ORIENT)
-    tmpV.z += rand(-POOF_STEM_RANDOM_ORIENT, POOF_STEM_RANDOM_ORIENT)
+    randomizeVec(tmpV, POOF_STEM_RANDOM_ORIENT)
     helper.lookAt(tmpV)
     
     helper.rotateX(Math.PI / 2)
@@ -60,8 +80,11 @@ module.exports = function() {
     fragmentShader: Shader.fragmentShader,
     transparent: true,
     uniforms: {
-      time: {type: 'f', value: 0}
-    }
+      offsetLookup: {type: 't', value: offsetsTexture},
+      time: {type: 'f', value: 0},
+      texDimension: {type: 'f', value: 32}
+    },
+    depthTest: false
   })
     
   const start = Date.now()
@@ -71,7 +94,8 @@ module.exports = function() {
   }
   requestAnimationFrame(animate)
   const lineMesh = new THREE.LineSegments(geometry, material);
-  head.add(lineMesh)
-  return head
+  container.add(lineMesh)
+  
+  return container
   
 }

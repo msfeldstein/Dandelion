@@ -13,9 +13,11 @@ precision highp float;
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;
 uniform float time;
+uniform float texDimension;
 
+uniform sampler2D offsetLookup;
+attribute float idx;
 attribute vec3 position;
-attribute vec3 offset;
 attribute vec3 euler;
 attribute vec4 quat;
 
@@ -23,6 +25,11 @@ attribute vec4 quat;
 #pragma glslify: curl = require(glsl-curl-noise)
 void main(){
 	vec3 rotated = rotate_vertex_position(position, quat);
+	vec2 uv = vec2(
+		mod(idx, texDimension) / texDimension,
+		floor(idx / texDimension) / texDimension
+	);
+	vec3 offset = texture2D(offsetLookup, uv).xyz;
 	vec4 absPos = vec4(rotated + offset, 1.0);
 	absPos.xyz += curl(vec3(offset.xy, time / 20000.0)) / 3.0;
 	gl_Position = projectionMatrix * modelViewMatrix * absPos;

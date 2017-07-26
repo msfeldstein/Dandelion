@@ -6,6 +6,7 @@ window.scene = new THREE.Scene()
 window.renderer = new THREE.WebGLRenderer({
   antialias: true
 })
+renderer.extensions.get( "OES_texture_float" )
 document.body.appendChild(renderer.domElement)
 renderer.setSize(window.innerWidth, window.innerHeight)
 window.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 100)
@@ -23,8 +24,9 @@ const light = new THREE.DirectionalLight(0xdcdcdc)
 light.position.set(10, 10, 10)
 scene.add(light)
 
-const Puffs = require('./InstancedDandelion')
-scene.add(Puffs())
+const InstancedDandelion = require('./InstancedDandelion')
+scene.add(InstancedDandelion(renderer))
+
 
 const axis = new THREE.AxisHelper(3)
 scene.add(axis)
