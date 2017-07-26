@@ -7,7 +7,8 @@ const GPUComputationRenderer = require('./GPUComputationRenderer')
 const POOF_STEM_RANDOM_ORIENT = 1;
 
 const windPositionFrag = require('./WindPositionFragmentShader')
-
+const NewtonFragmentShader = require('./NewtonFragmentShader')
+const WindVelocityFragmentShader = require('./WindVelocityFragmentShader')
 
 module.exports = function(renderer) {
   const container = new THREE.Object3D()
@@ -18,7 +19,7 @@ module.exports = function(renderer) {
   
   const head = new THREE.Mesh(
     new THREE.IcosahedronGeometry(3.4, 1),
-    new THREE.MeshPhongMaterial({color: 0xc2a91C,})
+    new THREE.MeshPhongMaterial({color: 0xc2a91C})
   )
   container.add(head)
   
@@ -46,7 +47,9 @@ module.exports = function(renderer) {
   
   var positionComputer = new GPUComputationRenderer( 32, 32, renderer );
   var posTex = positionComputer.createTexture();
+  var velTex = positionComputer.createTexture();
   var posArray = posTex.image.data;
+  var velArray = velTex.image.data;
   var offsetArray = new Float32Array(32 * 32 * 4)
   for (var i = 0; i < spawnGeo.vertices.length; i++) {
     const spawnVert = spawnGeo.vertices[i]
@@ -54,10 +57,16 @@ module.exports = function(renderer) {
     offsetArray[i * 4 + 1] = spawnVert.y
     offsetArray[i * 4 + 2] = spawnVert.z
     offsetArray[i * 4 + 3] = Math.random() // mass
+    velArray[i * 4] = 0;
+    velArray[i * 4 + 1] = 0;
+    velArray[i * 4 + 2] = -0.4;
+    velArray[i * 4 + 3] = Math.random();
   }
   posArray.set(offsetArray)
-  const posVar = positionComputer.addVariable("texturePosition", windPositionFrag, posTex)
-  positionComputer.setVariableDependencies(posVar, [posVar])
+  const posVar = positionComputer.addVariable("texturePosition", NewtonFragmentShader, posTex)
+  const velVar = positionComputer.addVariable("textureVelocity", WindVelocityFragmentShader, velTex)
+  positionComputer.setVariableDependencies(posVar, [posVar, velVar])
+  positionComputer.setVariableDependencies(velVar, [posVar, velVar])
   var error = positionComputer.init();
   if ( error !== null ) {
     console.error( error );
@@ -92,8 +101,7 @@ module.exports = function(renderer) {
       offsetLookup: {type: 't', value: posTex},
       time: {type: 'f', value: 0},
       texDimension: {type: 'f', value: 32}
-    },
-    depthTest: false
+    }
   })
     
   const start = Date.now()
@@ -104,6 +112,7 @@ module.exports = function(renderer) {
     material.uniforms.offsetLookup.value = positionComputer.getCurrentRenderTarget(posVar).texture
     material.uniforms.time.value = Date.now() - start
   }
+
   requestAnimationFrame(animate)
   const lineMesh = new THREE.LineSegments(geometry, material);
   container.add(lineMesh)

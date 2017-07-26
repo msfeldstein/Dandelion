@@ -9,9 +9,9 @@ window.renderer = new THREE.WebGLRenderer({
 renderer.extensions.get( "OES_texture_float" )
 document.body.appendChild(renderer.domElement)
 renderer.setSize(window.innerWidth, window.innerHeight)
-window.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 100)
+window.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000)
 camera.position.z = 30
-camera.position.x = 20
+camera.position.x = 0
 camera.position.y = 10
 new OrbitControls(camera)
 camera.lookAt(new THREE.Vector3())
