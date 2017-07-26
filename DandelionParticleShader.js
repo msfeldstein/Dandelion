@@ -31,7 +31,7 @@ void main(){
 	);
 	vec3 offset = texture2D(offsetLookup, uv).xyz;
 	vec4 absPos = vec4(rotated + offset, 1.0);
-	absPos.xyz += curl(vec3(offset.xy, time / 20000.0)) / 3.0;
+	// absPos.xyz += curl(vec3(offset.xy, time / 20000.0)) / 3.0;
 	gl_Position = projectionMatrix * modelViewMatrix * absPos;
 }
 `

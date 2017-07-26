@@ -6,6 +6,8 @@ require('three-instanced-mesh')(THREE)
 const GPUComputationRenderer = require('./GPUComputationRenderer')
 const POOF_STEM_RANDOM_ORIENT = 1;
 
+const windPositionFrag = require('./WindPositionFragmentShader')
+
 
 module.exports = function(renderer) {
   const container = new THREE.Object3D()
@@ -43,16 +45,23 @@ module.exports = function(renderer) {
   
   
   var positionComputer = new GPUComputationRenderer( 32, 32, renderer );
-  var offsetArray = new Float32Array(32*32 * 3)
+  var posTex = positionComputer.createTexture();
+  var posArray = posTex.image.data;
+  var offsetArray = new Float32Array(32 * 32 * 4)
   for (var i = 0; i < spawnGeo.vertices.length; i++) {
     const spawnVert = spawnGeo.vertices[i]
-    offsetArray[i * 3] = spawnVert.x
-    offsetArray[i * 3 + 1] = spawnVert.y
-    offsetArray[i * 3 + 2] = spawnVert.z
+    offsetArray[i * 4] = spawnVert.x
+    offsetArray[i * 4 + 1] = spawnVert.y
+    offsetArray[i * 4 + 2] = spawnVert.z
+    offsetArray[i * 4 + 3] = Math.random() // mass
   }
-  var offsetsTexture = new THREE.DataTexture(offsetArray, 32, 32, THREE.RGBFormat, THREE.FloatType, THREE.UVMapping)
-  offsetsTexture.needsUpdate = true
-  
+  posArray.set(offsetArray)
+  const posVar = positionComputer.addVariable("texturePosition", windPositionFrag, posTex)
+  positionComputer.setVariableDependencies(posVar, [posVar])
+  var error = positionComputer.init();
+  if ( error !== null ) {
+    console.error( error );
+  }
   var lookAtArray = new Float32Array(geometry.maxInstancedCount * 4)
 
   const tmpV = new THREE.Vector3()
@@ -80,7 +89,7 @@ module.exports = function(renderer) {
     fragmentShader: Shader.fragmentShader,
     transparent: true,
     uniforms: {
-      offsetLookup: {type: 't', value: offsetsTexture},
+      offsetLookup: {type: 't', value: posTex},
       time: {type: 'f', value: 0},
       texDimension: {type: 'f', value: 32}
     },
@@ -90,6 +99,9 @@ module.exports = function(renderer) {
   const start = Date.now()
   function animate() {
     requestAnimationFrame(animate)
+    positionComputer.compute()
+    
+    material.uniforms.offsetLookup.value = positionComputer.getCurrentRenderTarget(posVar).texture
     material.uniforms.time.value = Date.now() - start
   }
   requestAnimationFrame(animate)
